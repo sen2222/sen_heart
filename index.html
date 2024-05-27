@@ -3,19 +3,23 @@
 <head>
     <title>My GitHub Page</title>
     <script src="js/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * {
             padding: 0;
             margin: 0;
+            box-sizing: border-box;
         }
         html, body {
             height: 100%;
+            width: 100%;
             padding: 0;
             margin: 0;
             background: #000;
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
         }
         .container {
             position: relative;
@@ -23,7 +27,6 @@
             height: 100%;
         }
         canvas {
-            z-index: 99;
             position: absolute;
             top: 50%;
             left: 50%;
@@ -34,28 +37,23 @@
     </style>
 </head>
 <body>
-    <!-- 樱花 -->
     <div id="jsi-cherry-container" class="container">
         <audio autoplay="autoplay">
-            <source src="renxi.mp3" type="audio/mp3" />
+            <source src="renxi.mp3" type="audio/mp3">
         </audio>
-        <img class="img" src="./123.png" alt="" />
-        <!-- 爱心 -->
+        <img class="img" src="./123.png" alt="">
         <canvas id="pinkboard" class="container"></canvas>
     </div>
 </body>
 </html>
 <script>
-    /*
-     * Settings
-     */
     var settings = {
         particles: {
-            length: 500, // maximum amount of particles
-            duration: 2, // particle duration in sec
-            velocity: 100, // particle velocity in pixels/sec
-            effect: -0.75, // play with this for a nice effect
-            size: 30, // particle size in pixels
+            length: 500, 
+            duration: 2, 
+            velocity: 100, 
+            effect: -0.75, 
+            size: 30, 
         },
     };
 
@@ -86,9 +84,6 @@
         }
     })();
 
-    /*
-     * Point class
-     */
     var Point = (function () {
         function Point(x, y) {
             this.x = typeof x !== "undefined" ? x : 0;
@@ -114,9 +109,6 @@
         return Point;
     })();
 
-    /*
-     * Particle class
-     */
     var Particle = (function () {
         function Particle() {
             this.position = new Point();
@@ -157,9 +149,6 @@
         return Particle;
     })();
 
-    /*
-     * ParticlePool class
-     */
     var ParticlePool = (function () {
         var particles,
             firstActive = 0,
@@ -167,7 +156,6 @@
             duration = settings.particles.duration;
 
         function ParticlePool(length) {
-            // create and populate particle pool
             particles = new Array(length);
             for (var i = 0; i < particles.length; i++)
                 particles[i] = new Particle();
@@ -175,7 +163,6 @@
         ParticlePool.prototype.add = function (x, y, dx, dy) {
             particles[firstFree].initialize(x, y, dx, dy);
 
-            // handle circular queue
             firstFree++;
             if (firstFree == particles.length) firstFree = 0;
             if (firstActive == firstFree) firstActive++;
@@ -184,7 +171,6 @@
         ParticlePool.prototype.update = function (deltaTime) {
             var i;
 
-            // update active particles
             if (firstActive < firstFree) {
                 for (i = firstActive; i < firstFree; i++)
                     particles[i].update(deltaTime);
@@ -195,7 +181,6 @@
                 for (i = 0; i < firstFree; i++) particles[i].update(deltaTime);
             }
 
-            // remove inactive particles
             while (
                 particles[firstActive].age >= duration &&
                 firstActive != firstFree
@@ -205,7 +190,6 @@
             }
         };
         ParticlePool.prototype.draw = function (context, image) {
-            // draw active particles
             if (firstActive < firstFree) {
                 for (i = firstActive; i < firstFree; i++)
                     particles[i].draw(context, image);
@@ -219,17 +203,13 @@
         return ParticlePool;
     })();
 
-    /*
-     * Putting it all together
-     */
     (function (canvas) {
         var context = canvas.getContext("2d"),
             particles = new ParticlePool(settings.particles.length),
             particleRate =
-                settings.particles.length / settings.particles.duration, // particles/sec
+                settings.particles.length / settings.particles.duration,
             time;
 
-        // get point on heart with -PI <= t <= PI
         function pointOnHeart(t) {
             return new Point(
                 160 * Math.pow(Math.sin(t), 3),
@@ -241,13 +221,11 @@
             );
         }
 
-        // creating the particle image using a dummy canvas
         var image = (function () {
             var canvas = document.createElement("canvas"),
                 context = canvas.getContext("2d");
             canvas.width = settings.particles.size;
             canvas.height = settings.particles.size;
-            // helper function to create the path
             function to(t) {
                 var point = pointOnHeart(t);
                 point.x =
@@ -258,40 +236,32 @@
                     (point.y * settings.particles.size) / 350;
                 return point;
             }
-            // create the path
             context.beginPath();
             var t = -Math.PI;
             var point = to(t);
             context.moveTo(point.x, point.y);
             while (t < Math.PI) {
-                t += 0.01; // baby steps!
+                t += 0.01;
                 point = to(t);
                 context.lineTo(point.x, point.y);
             }
             context.closePath();
-            // create the fill
             context.fillStyle = "#ea80b0";
             context.fill();
-            // create the image
             var image = new Image();
             image.src = canvas.toDataURL();
             return image;
         })();
 
-        // render that thing!
         function render() {
-            // next animation frame
             requestAnimationFrame(render);
 
-            // update time
             var newTime = new Date().getTime() / 1000,
                 deltaTime = newTime - (time || newTime);
             time = newTime;
 
-            // clear canvas
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-            // create new particles
             var amount = particleRate * deltaTime;
             for (var i = 0; i < amount; i++) {
                 var pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
@@ -304,80 +274,19 @@
                 );
             }
 
-            // update and draw particles
             particles.update(deltaTime);
             particles.draw(context, image);
         }
 
-        // handle (re-)sizing of the canvas
         function onResize() {
             canvas.width = canvas.clientWidth;
             canvas.height = canvas.clientHeight;
         }
         window.onresize = onResize;
 
-        // delay rendering bootstrap
         setTimeout(function () {
             onResize();
             render();
         }, 10);
     })(document.getElementById("pinkboard"));
-</script>
-
-<script>
-    var RENDERER = {
-        INIT_CHERRY_BLOSSOM_COUNT: 30,
-        MAX_ADDING_INTERVAL: 10,
-
-        init: function () {
-            this.setParameters();
-            this.reconstructMethods();
-            this.createCherries();
-            this.render();
-            if (
-                navigator.userAgent.match(
-                    /(phone|pod|iPhone|iPod|ios|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
-                )
-            ) {
-                // var box = document.querySelectorAll(".box")[0];
-                // console.log(box, "移动端");
-                // box.style.marginTop = "65%";
-            }
-        },
-        setParameters: function () {
-            this.$container = $("#jsi-cherry-container");
-            this.width = this.$container.width();
-            this.height = this.$container.height();
-            this.context = $("<canvas />")
-                .attr({ width: this.width, height: this.height })
-                .appendTo(this.$container)
-                .get(0)
-            var rate = this.FOCUS_POSITION / (this.z + this.FOCUS_POSITION),
-                x = this.renderer.width / 2 + this.x * rate,
-                y = this.renderer.height / 2 - this.y * rate;
-            return { rate: rate, x: x, y: y };
-        },
-        re
-        }
-    } else {
-        this.phi += Math.PI / (axis.y == this.thresholdY ? 200 : 500);
-        this.phi %= Math.PI;
-    }
-    if (this.y <= -this.renderer.height * this.SURFACE_RATE) {
-        this.x += 2;
-        this.y = -this.renderer.height * this.SURFACE_RATE;
-    } else {
-        this.x += this.vx;
-        this.y += this.vy;
-    }
-    return (
-        this.z > -this.FOCUS_POSITION &&
-        this.z < this.FAR_LIMIT &&
-        this.x < this.renderer.width * 1.5
-    );
-},
-};
-$(function () {
-    RENDERER.init();
-});
 </script>
